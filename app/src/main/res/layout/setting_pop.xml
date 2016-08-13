@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <Button
+        android:layout_marginTop="15dp"
+        android:id="@+id/reset"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:background="@mipmap/re_off"
+       />
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.3"/>
+    <Button
+        android:id="@+id/difficulty"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:background="@mipmap/level3"
+        />
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.3"/>
+    <Button
+        android:id="@+id/music"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:background="@mipmap/music_off"
+       />
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:layout_weight="3"/>
+
+
+</LinearLayout>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:layout_height="match_parent">
+    <com.example.katherine_qj.puzzle.MyImageView
+        android:layout_gravity="center"
+        android:id="@+id/papaitemImage"
+        android:layout_width="55dp"
+        android:layout_height="55dp"
+        />
+
+</LinearLayout>
