@@ -22,5 +22,10 @@
         <item name="android:windowEnterAnimation">@anim/input_success</item>
         <item name="android:windowExitAnimation">@anim/output_success</item>
     </style>
+    <style name="AnimationFade_out">
+        <!-- PopupWindow左右弹出的效果 -->
+        <item name="android:windowEnterAnimation">@anim/input_out</item>
+        <item name="android:windowExitAnimation">@anim/output_out</item>
+    </style>
 
 </resources>

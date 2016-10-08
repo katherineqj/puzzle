@@ -6,21 +6,11 @@
 
     <Button
         android:layout_marginTop="15dp"
-        android:id="@+id/reset"
-        android:layout_width="45dp"
-        android:layout_height="45dp"
-        android:background="@mipmap/re_off"
-       />
-    <TextView
-        android:layout_width="fill_parent"
-        android:layout_height="0dp"
-        android:layout_weight="0.3"/>
-    <Button
         android:id="@+id/difficulty"
         android:layout_width="45dp"
         android:layout_height="45dp"
         android:background="@mipmap/level3"
-        />
+       />
     <TextView
         android:layout_width="fill_parent"
         android:layout_height="0dp"
@@ -30,6 +20,16 @@
         android:layout_width="45dp"
         android:layout_height="45dp"
         android:background="@mipmap/music_off"
+        />
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.3"/>
+    <Button
+        android:id="@+id/out"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:background="@mipmap/out"
        />
     <TextView
         android:layout_width="fill_parent"

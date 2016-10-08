@@ -3,10 +3,12 @@ package com.example.katherine_qj.puzzle;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.media.AudioManager;
 import android.media.SoundPool;
@@ -15,6 +17,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
@@ -31,6 +34,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.PopupWindow;
+
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,24 +46,43 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+
+import zhy.com.highlight.HighLight;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private final String ALBUM_PATH = Environment.getExternalStorageDirectory().getPath() + "/logo";
     private final String ALBUM_ALL_PATH = Environment.getExternalStorageDirectory().getPath() + "/logo/logo.png";
-    public static final int CHOICE_PHOTO = 1;
-    public static final int CROP_PHOTO = 2;
+    //public static final int CHOICE_PHOTO = 1;
+    public static final int CROP_PHOTO = 1;
+    public static final int SHOW_PICTURE = 2;
+    private String  SHARE_APP_TAG="start";
     private Button SettingBtn;
     private Button BeginBtn;
     private Button PapaBtn;
     private Button LevelBtn;
     private Button MusicBtn;
     private Button newpapaBtn;
+    private Button share;
     private Bitmap bitmap_papa;
+    private ImageView timeOne;
+    private ImageView timeTwo;
+    private ImageView timeThree;
+    private ImageView timeFour;
     private Button ReBtn;
+    private int x =1;
     private Button back;
-    private TextView weizhi;
+    private  Button outBtn;
+
+    private Button next;
+
+
+
     private MyAPP myAPP;
     private ContentResolver resolver;
     private Uri originalUri;
@@ -77,17 +100,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private PopupWindow popupwindow_setting;
     private PopupWindow Popupwindow_photo;
     private PopupWindow Popupwindow_success;
+    private PopupWindow Popupwindow_out;
+    private Button out;
+    private Button contiune;
     private WindowManager windowManager;
     private Animation operatingAnim;
+    private Animation operatingAnim_star;
     private int Screen_width;
     private int Sreen_height;
+    private int screenHeight;
     private ImageView[][] min_game_arr = new ImageView[3][3];
     private ImageView[][] middle_game_arr = new ImageView[4][4];
     private ImageView[][] max_game_arr = new ImageView[5][5];
 
+
+    private Date curDate;
+    private Date endDate;
+    private SimpleDateFormat df;
+    private String time;
+    private char [] timeArr;
+
+
+
     private SoundPool soundPool;
+    private int size;
     private int sound;
     private float soundLoad;
+    private HashMap<Integer, Integer> soundID = new HashMap<Integer, Integer>();
+    private  DisplayMetrics dm;
 
 
     private GestureDetector gestureDetector;
@@ -98,17 +138,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     private List<PaPa> list = new ArrayList<>();
-    private PaPaAdapter papaAdapter;
+    private PaPaAdapter  papaAdapter;
 
     private View customView;
     private View customView_photo;
     private View customView_success;
+    private View customView_out;
+    private View   highlight_one;
     private int[] location;
+
+    private  ImageView Star1;
+    private ImageView Star2;
+    private ImageView Star3;
+
+    private HighLight highLight;
+    private HighLight highLight_two;
+    private TextView weizhi;
 
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-
         return gestureDetector.onTouchEvent(event);
     }
 
@@ -150,22 +199,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                changeByDir( getDirByGes(e1.getX(), e1.getY(), e2.getX(), e2.getY()));
-                //手势执行一瞬间的方法操作
+                if (ismusic){
+                    soundPool.play(soundID.get(1), soundLoad, soundLoad, 1, 0, 1.0f);
+                }
+                if(isGameStart) {
+                    changeByDir(getDirByGes(e1.getX(), e1.getY(), e2.getX(), e2.getY()));
+                    //手势执行一瞬间的方法操作
+                }
+                else{
 
+                }
                 //   Toast.makeText(MainActivity.this,""+getDirByGes(e1.getX(),e1.getY(),e2.getX(),e2.getY()),Toast.LENGTH_SHORT).show();
                 return false;
             }
         });
 
         setContentView(R.layout.activity_main);
-        soundPool = new SoundPool(4, AudioManager.STREAM_MUSIC, 0);
-        sound = soundPool.load(this, R.raw.pa, 1);
+        soundPool = new SoundPool(3, AudioManager.STREAM_SYSTEM, 0);
+        soundID.put(1, soundPool.load(this, R.raw.papa, 1));
+        soundID.put(2, soundPool.load(this, R.raw.success, 1));
         InitView();
         MinGradeGame();
         SettingBtn.setOnClickListener(this);
         PapaBtn.setOnClickListener(this);
         BeginBtn.setOnClickListener(this);
+        SharedPreferences setting = getSharedPreferences(SHARE_APP_TAG, 0);
+        Boolean user_first = setting.getBoolean("FIRST",true);
+        if(user_first){//第一次
+            setting.edit().putBoolean("FIRST", false).commit();
+            highLight.show();
+        }else{
+
+        }
+
 
 
     }
@@ -178,8 +244,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 SettingBtn.startAnimation(operatingAnim);
                 if (popupwindow_setting != null && popupwindow_setting.isShowing()) {
                     popupwindow_setting.dismiss();
+                    SettingBtn.startAnimation(operatingAnim);
                     return;
                 } else {
+                    SettingBtn.startAnimation(operatingAnim);
                     InitPopupWindowsViewSetting();
                     popupwindow_setting.showAsDropDown(v);
 
@@ -229,20 +297,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 BeginBtn.setBackgroundResource(R.mipmap.go);
                 levelBtn();
                 OpenAbumlAndCrop();
-
+                Popupwindow_photo.dismiss();
+                linearLayout_photo.setBackgroundColor(Color.parseColor("#ffffff"));
                 break;
             case R.id.begin:
                 if (flag_stu==1) {
                     Bitmap bitmap = myAPP.getBitmap();
                     InitPaPaGame(bitmap);
-                    BeginBtn.setBackgroundResource(R.mipmap.re);
-                    flag_stu = 2;
+                    BeginBtn.setVisibility(View.GONE);
+                    //flag_stu = 2;
+                    randomMove(20);
                     levelBtn();
-                }else if (flag_stu==2) {
-                        randomMove(15);
-                        BeginPaPaGame();
-                        levelBtn();
-                        ReBtn();
+                    BeginBtn.setBackgroundResource(R.mipmap.re);
+                   // curDate = new Date(System.currentTimeMillis());
+                    BeginPaPaGame();
+                    levelBtn();
+                    ReBtn();
                     }
                 break;
             case R.id.back:
@@ -255,6 +325,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 levelBtn();
                 ReBtn();
                 break;
+            case R.id.out:
+                InitPopupWindowsViewOut();
+                break;
+            case R.id.nonono:
+                finish();
+                break;
+            case R.id.nenene:
+                Popupwindow_out.dismiss();
+                break;
+            case R.id.share:
+
+                Toast.makeText(getApplication(),"分享还没实现啦~~",Toast.LENGTH_LONG).show();
+              /*  Intent it = new Intent(Intent.ACTION_SEND);
+                String[] receiver;
+                receiver = new String[]{"156860180@qq.com"};
+                it.putExtra(Intent.EXTRA_EMAIL, receiver);
+                it.putExtra(Intent.EXTRA_TEXT, "快来下载");
+                it.setType("text/plain");
+                startActivity(it);*/
+
+                break;
+            case R.id.next:
+
 
 
 
@@ -267,8 +360,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         SettingBtn = (Button) findViewById(R.id.seeting);
         BeginBtn = (Button) findViewById(R.id.begin);
         PapaBtn = (Button) findViewById(R.id.photo);
-        weizhi = (TextView)findViewById(R.id.weizhi);
-         location = new int[2];
+        weizhi = (TextView) findViewById(R.id.weizhi);
+        location = new int[2];
         weizhi.getLocationOnScreen(location);
         MainGame_min = (GridLayout) findViewById(R.id.main_game_min);
         MainGame_middle = (GridLayout) findViewById(R.id.main_game_middle);
@@ -276,7 +369,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Screen_width = windowManager.getDefaultDisplay().getWidth();
         Sreen_height = windowManager.getDefaultDisplay().getHeight();
         linearLayout_photo = (LinearLayout) findViewById(R.id.linearlayout_photo);
-        papaAdapter = new PaPaAdapter(MainActivity.this,list);
+        papaAdapter = new PaPaAdapter(MainActivity.this, list);
 
         AudioManager audioManager = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE);
         //获取当前系统音量
@@ -287,30 +380,90 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         soundLoad = max;
         //设置播放文件的音量
 
+        df = new SimpleDateFormat("mm:ss");
+
         operatingAnim = AnimationUtils.loadAnimation(this, R.anim.rotate);
+        operatingAnim_star = AnimationUtils.loadAnimation(this, R.anim.rotate_star);
         LinearInterpolator lin = new LinearInterpolator();
+        LinearInterpolator lin_star = new LinearInterpolator();
         operatingAnim.setInterpolator(lin);
+        operatingAnim_star.setInterpolator(lin_star);
         myAPP = new MyAPP();
         resolver = getContentResolver();
         bitmap_papa = ((BitmapDrawable) getResources().getDrawable(R.mipmap.papa_game)).getBitmap();
         myAPP.setBitmap(bitmap_papa);
         customView = getLayoutInflater().inflate(R.layout.setting_pop, null, false);
-        ReBtn = (Button)customView.findViewById(R.id.reset);
-        ReBtn.setOnClickListener(this);
+        //ReBtn = (Button)customView.findViewById(R.id.reset);
+        // ReBtn.setOnClickListener(this);
         LevelBtn = (Button) customView.findViewById(R.id.difficulty);
+        outBtn = (Button) customView.findViewById(R.id.out);
+        outBtn.setOnClickListener(this);
         MusicBtn = (Button) customView.findViewById(R.id.music);
         MusicBtn.setOnClickListener(this);
         LevelBtn.setOnClickListener(this);
         customView_photo = getLayoutInflater().inflate(R.layout.photo_pop, null, false);
-        customView_success = getLayoutInflater().inflate(R.layout.success_pop,null,false);
-        back = (Button)customView_success.findViewById(R.id.back);
+        customView_success = getLayoutInflater().inflate(R.layout.success_pop, null, false);
+        customView_out = getLayoutInflater().inflate(R.layout.out_pop, null, false);
+        out = (Button) customView_out.findViewById(R.id.nonono);
+        contiune = (Button) customView_out.findViewById(R.id.nenene);
+        out.setOnClickListener(this);
+        contiune.setOnClickListener(this);
+        back = (Button) customView_success.findViewById(R.id.back);
+        Star1 = (ImageView) customView_success.findViewById(R.id.star1);
+        Star2 = (ImageView) customView_success.findViewById(R.id.star2);
+        Star3 = (ImageView) customView_success.findViewById(R.id.star3);
+        timeOne = (ImageView) customView_success.findViewById(R.id.time_one);
+        timeTwo = (ImageView) customView_success.findViewById(R.id.time_two);
+        timeThree = (ImageView) customView_success.findViewById(R.id.time_three);
+        timeFour = (ImageView) customView_success.findViewById(R.id.time_four);
+        share = (Button) customView_success.findViewById(R.id.share);
+        share.setOnClickListener(this);
+
         back.setOnClickListener(this);
         newpapaBtn = (Button) customView_photo.findViewById(R.id.new_papa);
-        listView_pa = (ListView)customView_photo.findViewById(R.id.listview_pa);
+        listView_pa = (ListView) customView_photo.findViewById(R.id.listview_pa);
         listView_pa.setAdapter(papaAdapter);
         newpapaBtn.setOnClickListener(this);
         ReBtn();
+        dm = new DisplayMetrics();
+
+        getWindowManager().getDefaultDisplay().getMetrics(dm);
+
+
+        screenHeight = dm.heightPixels;
+        size = screenHeight - (screenHeight / 8);
+
+
+
+        highLight = new HighLight(MainActivity.this);
+        highLight_two = new HighLight(MainActivity.this);
+        highLight_two.addHighLight(SettingBtn, R.layout.gudge_two, new HighLight.OnPosCallback() {
+            @Override
+            public void getPos(float rightMargin, float bottomMargin, RectF rectF, HighLight.MarginInfo marginInfo) {
+                marginInfo.leftMargin = 10;
+                marginInfo.topMargin = 0;
+            }
+        });
+        highLight.addHighLight(PapaBtn, R.layout.gudge_one, new HighLight.OnPosCallback() {
+            @Override
+            public void getPos(float rightMargin, float bottomMargin, RectF rectF, HighLight.MarginInfo marginInfo) {
+                marginInfo.leftMargin = 10;
+                marginInfo.topMargin = 0;
+            }
+        });
+
+
+        highLight.setClickCallback(new HighLight.OnClickCallback() {
+            @Override
+            public void onClick() {
+                 highLight_two.show();
+
+            }
+
+        });
+
     }
+
 
     public void InitPopupWindowsViewSetting() {
        /* View customView = getLayoutInflater().inflate(R.layout.setting_pop, null, false);
@@ -336,23 +489,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Popupwindow_photo.setAnimationStyle(R.style.AnimationFade_pa);
     }
     public void InitPopupWindowsViewSuccess(){
+
         Popupwindow_success = new PopupWindow(customView_success, Screen_width, Sreen_height);
         Popupwindow_success.setAnimationStyle(R.style.AnimationFade_success);
         Popupwindow_success.showAtLocation(weizhi, Gravity.NO_GRAVITY, location[0], location[1] - Popupwindow_success.getHeight());
+    }
+    public void InitPopupWindowsViewOut(){
+
+        Popupwindow_out = new PopupWindow(customView_out, Screen_width, Sreen_height);
+     //   Popupwindow_out.setAnimationStyle(R.style.AnimationFade_out);
+        Popupwindow_out.setAnimationStyle(R.style.AnimationFade_out);
+        Popupwindow_out.showAtLocation(weizhi, Gravity.NO_GRAVITY, location[0], location[1] - Popupwindow_out.getHeight());
     }
 
 
     public void MinGradeGame() {
         Bitmap big = myAPP.getBitmap();
         //  Bitmap big = ((BitmapDrawable)getResources().getDrawable(R.mipmap.papa_game)).getBitmap();
-        Bitmap BB = zoomImg(big, 900, 900);
+        Bitmap BB = zoomImg(big, size,size);
         int tuWandH = BB.getHeight() / 3;
         for (int i = 0; i < min_game_arr.length; i++) {
             for (int j = 0; j < min_game_arr[0].length; j++) {
                 Bitmap bm = Bitmap.createBitmap(BB, j * tuWandH, i * tuWandH, tuWandH, tuWandH);
                 min_game_arr[i][j] = new ImageView(this);
                 min_game_arr[i][j].setImageBitmap(bm);//设置每一个小方块的图案
-                min_game_arr[i][j].setPadding(2, 2, 2, 2);//设置方块之间的间距
+                min_game_arr[i][j].setPadding(1, 1, 1, 1);//设置方块之间的间距
             }
         }
         MainGame_min.removeAllViews();
@@ -368,14 +529,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void MiddleGradeGame() {
         Bitmap big = myAPP.getBitmap();
         // Bitmap big = ((BitmapDrawable)getResources().getDrawable(R.mipmap.papa_game)).getBitmap();
-        Bitmap BB = zoomImg(big, 900, 900);
+        Bitmap BB = zoomImg(big,size, size);
         int tuWandH = BB.getHeight() / 4;
         for (int i = 0; i < middle_game_arr.length; i++) {
             for (int j = 0; j < middle_game_arr[0].length; j++) {
                 Bitmap bm = Bitmap.createBitmap(BB, j * tuWandH, i * tuWandH, tuWandH, tuWandH);
                 middle_game_arr[i][j] = new ImageView(this);
                 middle_game_arr[i][j].setImageBitmap(bm);//设置每一个小方块的图案
-                middle_game_arr[i][j].setPadding(2, 2, 2, 2);//设置方块之间的间距
+                middle_game_arr[i][j].setPadding(1, 1, 1, 1);//设置方块之间的间距
             }
         }
         MainGame_middle.removeAllViews();
@@ -424,19 +585,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public void OpenAbumlAndCrop() {
 
-        Intent intent = new Intent();
-                /* 开启Pictures画面Type设定为image */
-        intent.setType("image/*");
-                /* 使用Intent.ACTION_GET_CONTENT这个Action */
+       /* Intent intent = new Intent();
+                *//* 开启Pictures画面Type设定为image *//*
+        intent.setType("image*//*");
+                *//* 使用Intent.ACTION_GET_CONTENT这个Action *//*
         intent.setAction(Intent.ACTION_GET_CONTENT);
-                /* 取得相片后返回本画面 */
+                *//* 取得相片后返回本画面 *//*
         startActivityForResult(intent, CHOICE_PHOTO);
+
+*/
+
+
+
+        File outputImage = new File(Environment.getExternalStorageDirectory(),
+                "output_image.jpg");
+        imageUri = Uri.fromFile(outputImage);
+
+        try {
+            if (outputImage.exists()) {
+                outputImage.delete();
+            }
+            outputImage.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Intent intent = new Intent(Intent.ACTION_PICK,null);
+        //此处调用了图片选择器
+        //如果直接写intent.setDataAndType("image/*");
+        //调用的是系统图库
+        intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+       // intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+        startActivityForResult(intent, CROP_PHOTO);
 
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent intent_pa) {
         switch (requestCode) {
-            case CHOICE_PHOTO :
+           /* case CHOICE_PHOTO :
                 if (resultCode == RESULT_OK) {
 
                     File outputImage=new File(Environment.getExternalStorageDirectory(),"logo1.jpg");
@@ -468,19 +653,42 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     {
                         e.printStackTrace();
                     }
-                    Intent intent=new Intent("com.android.camera.action.CROP");
+                    *//*Intent intent=new Intent("com.android.camera.action.CROP");
                     intent.setType("image");
                     intent.putExtra("crop", false);//允许裁剪
                     intent.putExtra("scale", false);//允许缩放
                     intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
                     intent.setDataAndType(originalUri, "image");
+                    startActivityForResult(intent, CROP_PHOTO);*//*
+
+
+                    Intent intent = new Intent(Intent.ACTION_PICK,null);
+                    //此处调用了图片选择器
+                    //如果直接写intent.setDataAndType("image*//*");
+                    //调用的是系统图库
+                    intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image*//*");
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
                     startActivityForResult(intent, CROP_PHOTO);
 
-            }
-                break;
+                }
+                break;*/
             case CROP_PHOTO:
                 if (resultCode == RESULT_OK) {
-                    try {
+
+
+                    //此处启动裁剪程序
+                    Intent intent = new Intent("com.android.camera.action.CROP");
+
+                    String text=imageUri.toString();
+                  //  Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
+                    //intent.setDataAndType(intent.getData(), "image/*");
+                    originalUri = intent_pa.getData();
+                    intent.setDataAndType(originalUri, "image");
+                    intent.putExtra("scale", true);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+                    startActivityForResult(intent, SHOW_PICTURE);
+                  /*  try {
+
                          Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
                          myAPP.setBitmap(bitmap);
                          PaPa paPa = new PaPa(bitmap);
@@ -489,9 +697,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                          BeginBtn.setVisibility(View.VISIBLE);
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
-                    }
+                    }*/
 
                 }
+                break;
+            case SHOW_PICTURE:
+                if (resultCode == RESULT_OK) {
+                    try {
+                         Log.e("www",imageUri+"");
+                        Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
+                        myAPP.setBitmap(bitmap);
+                        PaPa paPa = new PaPa(bitmap);
+                        list.add(paPa);
+                        Collections.reverse(list);
+                        Log.e("www", myAPP.getBitmap() + "");
+                        ChangePaPaDifficuty();
+                        BeginBtn.setVisibility(View.VISIBLE);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+                break;
+            default:
+                break;
         }
 
     }
@@ -514,7 +742,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void InitPaPaGame(Bitmap bitmap_papagame) {
         isLeve=true;
         if (level == 3) {
-            Bitmap BB = zoomImg(bitmap_papagame, 900, 900);
+            Bitmap BB = zoomImg(bitmap_papagame, size, size);
             int tuWandH = BB.getHeight() / 3;
             for (int i = 0; i < min_game_arr.length; i++) {
                 for (int j = 0; j < min_game_arr[0].length; j++) {
@@ -522,7 +750,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     //根据行列切成若干个小方块
                     min_game_arr[i][j] = new ImageView(getApplication());
                     min_game_arr[i][j].setImageBitmap(bm);//设置每一个小方块的图案
-                    min_game_arr[i][j].setPadding(2, 2, 2, 2);//设置方块之间的间距
+                    min_game_arr[i][j].setPadding(1, 1, 1, 1);//设置方块之间的间距
                     min_game_arr[i][j].setTag(new GameDate(i, j, bm));//绑定自定义的数据
                 }
 
@@ -540,7 +768,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
         if (level == 4) {
-            Bitmap BB = zoomImg(bitmap_papagame, 900, 900);
+            Bitmap BB = zoomImg(bitmap_papagame, size, size);
             int tuWandH = BB.getHeight() / 4;
             for (int i = 0; i < middle_game_arr.length; i++) {
                 for (int j = 0; j < middle_game_arr[0].length; j++) {
@@ -548,7 +776,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     //根据行列切成若干个小方块
                     middle_game_arr[i][j] = new ImageView(getApplication());
                     middle_game_arr[i][j].setImageBitmap(bm);//设置每一个小方块的图案
-                    middle_game_arr[i][j].setPadding(2, 2, 2, 2);//设置方块之间的间距
+                    middle_game_arr[i][j].setPadding(1, 1, 1, 1);//设置方块之间的间距
                     middle_game_arr[i][j].setTag(new GameDate(i, j, bm));//绑定自定义的数据
                 }
 
@@ -614,7 +842,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         public void onClick(View v) {
                             boolean flag = ifHasNullImageView((ImageView) v);
                             if (flag) {//如果是真的相邻关系就交换
-                                changeDataByImageView((ImageView)v,true);
+                                if (ismusic){
+                                    soundPool.play(soundID.get(1), soundLoad, soundLoad, 1, 0, 1.0f);
+                                }
+                                changeDataByImageView((ImageView)v,true,true);
                             }
                         }
                     });
@@ -628,7 +859,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         public void onClick(View v) {
                             boolean flag = ifHasNullImageView((ImageView) v);
                             if (flag) {//如果是真的相邻关系就交换
-                                changeDataByImageView((ImageView)v,true);
+                                if (ismusic){
+                                    soundPool.play(soundID.get(1), soundLoad, soundLoad, 1, 0, 1.0f);
+                                }
+                                changeDataByImageView((ImageView)v,true,true);
                             }
                         }
                     });
@@ -658,20 +892,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return  false;
     }
     public void changeDataByImageView(final ImageView imageView){
-        changeDataByImageView(imageView,true);
+        changeDataByImageView(imageView,true,false);
     }
 
-    public  void changeDataByImageView(final ImageView imageView,Boolean istrue){
+    public  void changeDataByImageView(final ImageView imageView,Boolean istrue,Boolean isStart){
 
         if (!istrue){
             GameDate gameDate = (GameDate)imageView.getTag();
+            Log.e("GameDate",gameDate.toString());
             main_nullImage.setImageBitmap(gameDate.bm);
             GameDate nullgamedata = (GameDate)main_nullImage.getTag();
             nullgamedata.bm = gameDate.bm;
             nullgamedata.p_x = gameDate.p_x;
             nullgamedata.p_y = gameDate.p_y;
             setNullImageView(imageView);
-            if (isGameStart) {
+            if (isStart) {
                 isGameOver();
             }
             return;
@@ -755,15 +990,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if (isGameOver) {
 
-               /* isGameStart=false;
+                isGameStart=false;
                 isLeve=false;
                 ChangePaPaDifficuty();
                 flag_stu=1;
+                 BeginBtn.setVisibility(View.VISIBLE);
                  BeginBtn.setBackgroundResource(R.mipmap.go);
                 levelBtn();
-                ReBtn();*/
+                ReBtn();
                 InitPopupWindowsViewSuccess();
                 Popupwindow_success.showAsDropDown(weizhi);
+                endDate = new Date(System.currentTimeMillis());
+                Log.e("ttt",curDate.toString());
+                initTime();
+                changetime(timeArr[0],timeOne);
+                changetime(timeArr[1], timeTwo);
+                changetime(timeArr[2],timeThree);
+                changetime(timeArr[3],timeFour);
+
+
+
+
+              /*  Star1.startAnimation(operatingAnim_star);
+                Star2.startAnimation(operatingAnim_star);
+                Star3.startAnimation(operatingAnim_star);*/
+                soundPool.play(soundID.get(2), soundLoad, soundLoad, 1, 0, 1.0f);
+
 
 
         }
@@ -771,9 +1023,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void changeByDir(int type){
         changeByDir(type, true);
     }
-    public void changeByDir(int type,Boolean ishas) {
-        if (ismusic==true){
-            soundPool.play(sound, soundLoad, soundLoad, 1, 0, 1.0f);
+    public void changeByDir(int type, Boolean ishas) {
+        if (ismusic ==true){
+            Log.e("123","sound");
+            soundPool.play(soundID.get(1), soundLoad, soundLoad, 1, 0, 1.0f);
         }
         if (level == 3) {
             GameDate nullGameDate = (GameDate)main_nullImage.getTag();
@@ -793,7 +1046,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (ishas) {
                     changeDataByImageView(min_game_arr[new_x][new_y]);
                 } else {
-                    changeDataByImageView(min_game_arr[new_x][new_y], false);
+                    changeDataByImageView(min_game_arr[new_x][new_y], false,false);
 
                 }
             }
@@ -816,7 +1069,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (ishas) {
                     changeDataByImageView(middle_game_arr[new_x][new_y]);
                 } else {
-                    changeDataByImageView(middle_game_arr[new_x][new_y], false);
+                    changeDataByImageView(middle_game_arr[new_x][new_y], false,true);
 
                 }
             }
@@ -853,6 +1106,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             int type =(int)(Math.random()*4)+1;
             changeByDir(type,false);
         }
+        curDate = new Date(System.currentTimeMillis());
+        Log.e("time1", curDate.toString());
     }
     public void levelBtn(){
         if (isLeve==true){
@@ -874,16 +1129,61 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
     public void ReBtn(){
-        if (isGameStart==true){
+       /* if (isGameStart==true){
             ReBtn.setBackgroundResource(R.mipmap.re);
             ReBtn.setClickable(true);
             Log.e("123","qwe");
         }
-        if (isGameStart==false){
+       *//* if (isGameStart==false){
             ReBtn.setBackgroundResource(R.mipmap.re_off);
             ReBtn.setClickable(false);
+        }*/
+    }
+
+    public void changetime(char i,View v) {
+        Log.e("time_0", i + "");
+        switch (i) {
+            case '1':
+                v.setBackgroundResource(R.mipmap.num1);
+                break;
+            case '2':
+                v.setBackgroundResource(R.mipmap.num2);
+                break;
+            case '3':
+                v.setBackgroundResource(R.mipmap.num3);
+                break;
+            case '4':
+                v.setBackgroundResource(R.mipmap.num4);
+                break;
+            case '5':
+                v.setBackgroundResource(R.mipmap.num5);
+                break;
+            case '6':
+                v.setBackgroundResource(R.mipmap.num6);
+                break;
+            case '7':
+                v.setBackgroundResource(R.mipmap.num7);
+                break;
+            case '8':
+                v.setBackgroundResource(R.mipmap.num8);
+                break;
+            case '9':
+                v.setBackgroundResource(R.mipmap.num9);
+                break;
         }
     }
+        public void initTime(){
+            time = df.format(endDate.getTime() - curDate.getTime());
+            time = time.replace(":", "")+2;
+            timeArr = time.toCharArray();
+            Log.e("time", time);
+
+
+    }
+
+
+
+
 }
 
 

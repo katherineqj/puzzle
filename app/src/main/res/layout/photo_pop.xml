@@ -14,10 +14,9 @@
         android:layout_width="fill_parent"
         android:layout_height="15dp" />
     <ListView
-        
+        android:divider="@null"
         android:layout_gravity="center_horizontal"
         android:dividerHeight="15dp"
-        android:divider="#a6b3c3"
         android:layout_marginTop="10dp"
         android:id="@+id/listview_pa"
         android:layout_width="match_parent"
