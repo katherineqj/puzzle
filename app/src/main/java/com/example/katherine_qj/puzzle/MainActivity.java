@@ -1,9 +1,12 @@
 package com.example.katherine_qj.puzzle;
 
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -28,6 +31,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.TranslateAnimation;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -156,6 +160,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView weizhi;
 
 
+    private DBService dbService;
+    private SQLiteDatabase database;
+    private Cursor cursor;
+    private static int su = 1;
+
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         return gestureDetector.onTouchEvent(event);
@@ -219,6 +229,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         soundID.put(1, soundPool.load(this, R.raw.papa, 1));
         soundID.put(2, soundPool.load(this, R.raw.success, 1));
         InitView();
+        Great_DBS();
+        Get_Bitmap();
         MinGradeGame();
         SettingBtn.setOnClickListener(this);
         PapaBtn.setOnClickListener(this);
@@ -228,12 +240,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(user_first){//第一次
             setting.edit().putBoolean("FIRST", false).commit();
             highLight.show();
-        }else{
-
         }
-
-
-
     }
 
 
@@ -306,7 +313,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     InitPaPaGame(bitmap);
                     BeginBtn.setVisibility(View.GONE);
                     //flag_stu = 2;
-                    randomMove(20);
+                    randomMove(10);
                     levelBtn();
                     BeginBtn.setBackgroundResource(R.mipmap.re);
                    // curDate = new Date(System.currentTimeMillis());
@@ -344,7 +351,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 it.putExtra(Intent.EXTRA_TEXT, "快来下载");
                 it.setType("text/plain");
                 startActivity(it);*/
-
                 break;
             case R.id.next:
 
@@ -356,7 +362,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     public void InitView() {
-
         SettingBtn = (Button) findViewById(R.id.seeting);
         BeginBtn = (Button) findViewById(R.id.begin);
         PapaBtn = (Button) findViewById(R.id.photo);
@@ -418,15 +423,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         timeFour = (ImageView) customView_success.findViewById(R.id.time_four);
         share = (Button) customView_success.findViewById(R.id.share);
         share.setOnClickListener(this);
-
         back.setOnClickListener(this);
         newpapaBtn = (Button) customView_photo.findViewById(R.id.new_papa);
         listView_pa = (ListView) customView_photo.findViewById(R.id.listview_pa);
         listView_pa.setAdapter(papaAdapter);
+        listView_pa.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+                PaPa item = (PaPa)adapterView.getItemAtPosition(i);
+                list.remove(item);
+                papaAdapter.notifyDataSetChanged();
+                return  true;
+            }
+        });
         newpapaBtn.setOnClickListener(this);
         ReBtn();
         dm = new DisplayMetrics();
-
         getWindowManager().getDefaultDisplay().getMetrics(dm);
 
 
@@ -706,6 +718,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     try {
                          Log.e("www",imageUri+"");
                         Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
+                        Save_Bitmap(su,bitmap);
+                        su++;
                         myAPP.setBitmap(bitmap);
                         PaPa paPa = new PaPa(bitmap);
                         list.add(paPa);
@@ -989,7 +1003,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
         if (isGameOver) {
-
                 isGameStart=false;
                 isLeve=false;
                 ChangePaPaDifficuty();
@@ -1007,9 +1020,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 changetime(timeArr[1], timeTwo);
                 changetime(timeArr[2],timeThree);
                 changetime(timeArr[3],timeFour);
-
-
-
 
               /*  Star1.startAnimation(operatingAnim_star);
                 Star2.startAnimation(operatingAnim_star);
@@ -1083,7 +1093,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             boolean isLeft = (start_x-end_x)>0?true:false;
             if(isLeft){
                 return  3;
-
             }else{
                 return  4;
             }
@@ -1172,18 +1181,53 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
     }
-        public void initTime(){
+    public void initTime(){
             time = df.format(endDate.getTime() - curDate.getTime());
             time = time.replace(":", "")+2;
             timeArr = time.toCharArray();
             Log.e("time", time);
-
-
+    }
+    //将图片转换为字节
+    public byte[] ImgByte(Bitmap bitmap){
+        if (bitmap==null){
+            return null;
+        }
+        final   ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG,100,baos);
+        return baos.toByteArray();
+    }
+    public void Great_DBS(){
+        dbService = new DBService(getApplicationContext());
+        database =  dbService.getWritableDatabase();
     }
 
-
-
-
+    public void Save_Bitmap(int id,Bitmap bitmap){
+        byte[] bytes = ImgByte(bitmap);
+        ContentValues values = new ContentValues();
+        values.put("photo_id",id);
+        values.put("photo_image",bytes);
+        database = dbService.getWritableDatabase();
+        database.insert("photo",null,values);
+        database.close();
+        dbService.close();
+        Log.d("dbs","插入成功");
+    }
+    public void  Get_Bitmap(){
+        database  =dbService.getWritableDatabase();
+        cursor = database.query("photo",null,null,null,null,null,null);
+        if (cursor.moveToFirst()){
+            do{
+                byte[] bytes = cursor.getBlob(cursor.getColumnIndex("photo_image"));
+                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes,0,bytes.length,null);
+                PaPa paPa = new PaPa(bitmap);
+                list.add(paPa);
+                Log.d("dbs","查询成功");
+            }while (cursor.moveToNext());
+            cursor.close();
+            database.close();
+            dbService.close();
+        }
+    }
 }
 
 

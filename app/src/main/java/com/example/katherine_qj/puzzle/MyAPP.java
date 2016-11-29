@@ -10,7 +10,15 @@ public class MyAPP extends Application {
     private Bitmap mBitmap;
 
     public Bitmap getBitmap() {
+
+
+
         return mBitmap;
+
+
+
+
+
     }
 
     public void setBitmap(Bitmap bitmap) {
